@@ -1,5 +1,9 @@
 package wikibot;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONObject;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -10,6 +14,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class WikiBot extends TelegramLongPollingBot {
 
@@ -34,7 +41,13 @@ public class WikiBot extends TelegramLongPollingBot {
         Long id = user.getId();
 
         switch (msg.getText()) {
-            case "\\article" -> sendMessage(id, msg.getText());
+            case "\\article" -> {
+                try {
+                    sendMessage(id, getArticle());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             default -> sendMessage(id, "I don't understand :(");
         }
 
@@ -52,8 +65,26 @@ public class WikiBot extends TelegramLongPollingBot {
         }
     }
 
-    public void getArticle() {
+    public String getArticle() throws IOException {
+        URL url = new URL("https://en.wikipedia.org/api/rest_v1/page/random/summary");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        String inputLine;
+        StringBuilder content = new StringBuilder();
+        BufferedReader in;
+        ObjectMapper om = new ObjectMapper();
+        JsonNode jn;
 
+        connection.setRequestMethod("GET");
+        connection.connect();
+
+        in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        while ((inputLine = in.readLine()) != null) {
+            content.append(inputLine);
+        }
+        in.close();
+
+        jn = om.readTree(String.valueOf(content));
+        return jn.get("content_urls").get("mobile").get("page").asText();
     }
 
     private String readTokenFile() throws IOException {
