@@ -41,14 +41,15 @@ public class WikiBot extends TelegramLongPollingBot {
         Long id = user.getId();
 
         switch (msg.getText()) {
-            case "\\article" -> {
+            case "/article" -> {
                 try {
                     sendMessage(id, getArticle());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
-            default -> sendMessage(id, "I don't understand :(");
+            case "/start" -> sendMessage(id, "Hello! Type /article to get a random article from Wikipedia!");
+            default -> sendMessage(id, "Type /article to get a random article from Wikipedia!");
         }
 
     }
